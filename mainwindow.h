@@ -7,6 +7,8 @@
 #include <QMainWindow>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread.hpp>
 #include "threadtest.h"
 #include "app.h"
 #include <QDebug>
@@ -27,17 +29,13 @@ public:
     ~MainWindow();
 	void showEvent(QShowEvent *ev);
 
-private slots:
-	void test_thread();
+	bool stream_on_flag = false;
 	void stream_on();
 
-private:
+public:
     Ui::MainWindow *ui;
 
 	Kinect kinect;
-
-	ThreadTest* m_thread;
-	ThreadTest* stream_thread;
 };
 
 #endif // MAINWINDOW_H

@@ -16,6 +16,6 @@ void ThreadTest::run()
 	while (1)
 	{
 		emit tick(0);
-		msleep(30);
+		msleep(100);
 	}
 }
