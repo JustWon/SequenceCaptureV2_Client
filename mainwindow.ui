@@ -24,7 +24,10 @@
      </rect>
     </property>
     <property name="text">
-     <string>TextLabel</string>
+     <string>Kinect Depth 2</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
   </widget>

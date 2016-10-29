@@ -73,31 +73,41 @@ private:
 		else
 		{
 			const std::string strRecvMessage = m_ReceiveBuffer.data();
-			std::cout << "서버에서 받은 메시지: " << strRecvMessage << ", 받은 크기: " << bytes_transferred << std::endl;
+			// std::cout << "서버에서 받은 메시지: " << strRecvMessage << ", 받은 크기: " << bytes_transferred << std::endl;
 
 			static boost::thread thread;
-			if (!strcmp(strRecvMessage.c_str(), "stream_on"))
+			if (!strncmp(strRecvMessage.c_str(), "result", 6)) {
+				p_mainwindow->sandbox_create(strRecvMessage);
+			}
+			else if (!strcmp(strRecvMessage.c_str(), "stream_on"))
 			{
-				qDebug() << "stream on if";
+				std::cout << "Stream on" << std::endl;
 				p_mainwindow->stream_on_flag = true;
 				thread = boost::thread(boost::bind(&MainWindow::stream_on, p_mainwindow));
 			}
 			else if (!strcmp(strRecvMessage.c_str(), "stream_off"))
 			{
-				qDebug() << "stream off elses";
+				std::cout << "Stream off" << std::endl;
 				p_mainwindow->stream_on_flag = false;
 			}
 			else if (!strcmp(strRecvMessage.c_str(), "still_capture"))
 			{
-				qDebug() << "still capture";
-				
-				p_mainwindow->kinect.update();
-				p_mainwindow->kinect.drawDepth();
-				p_mainwindow->kinect.saveDepth();
+				std::cout << "Still shot capture" << std::endl;
+				p_mainwindow->still_save_flag = true;
+			}
+			else if (!strcmp(strRecvMessage.c_str(), "sequence_capture_start"))
+			{
+				std::cout << "Sequence capture start" << std::endl;
+				p_mainwindow->stream_save_flag = true;
+			}
+			else if (!strcmp(strRecvMessage.c_str(), "sequence_capture_stop"))
+			{
+				std::cout << "Sequence capture stop" << std::endl;
+				p_mainwindow->stream_save_flag = false;
 			}
 			else if (!strcmp(strRecvMessage.c_str(), "program_quit"))
 			{
-				qDebug() << "program quit";
+				std::cout << "Program quit" << std::endl;
 				m_Socket.close();
 				return;
 			}
@@ -173,14 +183,26 @@ void MainWindow::stream_on()
 		cv::resize(mat_img, mat_img, cv::Size(ui->label_KinectDepth->width(), ui->label_KinectDepth->height()));
 		q_image = Mat2QImage_color(mat_img);
 		ui->label_KinectDepth->setPixmap(QPixmap::fromImage(q_image));
+
+		if (stream_save_flag) {
+			kinect.saveDepth(sequence_save_dir_path, sequence_cnt);
+			sequence_cnt++;
+		}
+		if (still_save_flag) {
+			kinect.saveDepth(still_save_dir_path, still_cnt);
+			still_cnt++;
+			still_save_flag = false;
+		}
 	}
 
 	// stream off
-	Mat mat_img = Mat::zeros(640, 480, CV_32FC1);
-	QImage q_image;
-	cv::resize(mat_img, mat_img, cv::Size(ui->label_KinectDepth->width(), ui->label_KinectDepth->height()));
-	q_image = Mat2QImage_depth(mat_img);
-	ui->label_KinectDepth->setPixmap(QPixmap::fromImage(q_image));
+	{
+		Mat mat_img = Mat::zeros(640, 480, CV_32FC1);
+		QImage q_image;
+		cv::resize(mat_img, mat_img, cv::Size(ui->label_KinectDepth->width(), ui->label_KinectDepth->height()));
+		q_image = Mat2QImage_depth(mat_img);
+		ui->label_KinectDepth->setPixmap(QPixmap::fromImage(q_image));
+	}
 }
 
 void MainWindow::showEvent(QShowEvent* event) {
@@ -190,4 +212,31 @@ void MainWindow::showEvent(QShowEvent* event) {
 
 	client.Connect(endpoint);
 	boost::thread thread(boost::bind(&boost::asio::io_service::run, &io_service));
+}
+
+std::wstring FormatTime(boost::posix_time::ptime now)
+{
+	using namespace boost::posix_time;
+	static std::locale loc(std::wcout.getloc(),
+		new wtime_facet(L"%Y%m%d_%H%M%S"));
+
+	std::basic_stringstream<wchar_t> wss;
+	wss.imbue(loc);
+	wss << now;
+	return wss.str();
+}
+
+
+void MainWindow::sandbox_create(string sandbox_path) {
+
+	boost::filesystem::create_directory("result");
+
+	sandbox_dir_path = sandbox_path;
+	boost::filesystem::create_directory(sandbox_dir_path);
+
+	still_save_dir_path = sandbox_dir_path + "/still/";
+	boost::filesystem::create_directory(still_save_dir_path);
+
+	sequence_save_dir_path = sandbox_dir_path + "/sequence/";
+	boost::filesystem::create_directory(sequence_save_dir_path);
 }
