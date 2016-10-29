@@ -95,6 +95,12 @@ private:
 				p_mainwindow->kinect.drawDepth();
 				p_mainwindow->kinect.saveDepth();
 			}
+			else if (!strcmp(strRecvMessage.c_str(), "program_quit"))
+			{
+				qDebug() << "program quit";
+				m_Socket.close();
+				return;
+			}
 
 			PostReceive();
 		}
